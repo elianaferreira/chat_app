@@ -25,6 +25,7 @@ class _AuthState extends State<AuthScreen> {
   String _enteredPasword = '';
   File? _selectedImage;
   bool _isLoginMode = true;
+  bool _isAuthenticating = false;
 
   void _submit() async {
     final isValidForm = _formKey.currentState!.validate();
@@ -33,6 +34,9 @@ class _AuthState extends State<AuthScreen> {
 
     _formKey.currentState!.save();
     try {
+      setState(() {
+        _isAuthenticating = true;
+      });
       if (_isLoginMode) {
         await _firebase.signInWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPasword);
@@ -52,6 +56,10 @@ class _AuthState extends State<AuthScreen> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(err.message ?? 'Authentication failed')));
+    } finally {
+      setState(() {
+        _isAuthenticating = false;
+      });
     }
   }
 
@@ -61,83 +69,99 @@ class _AuthState extends State<AuthScreen> {
       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       body: Center(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(Dimens.padding),
-                width: Dimens.logoSize,
-                child: Image.asset('assets/images/chat.png'),
-              ),
-              Card(
-                margin: const EdgeInsets.all(Dimens.padding),
-                child: Padding(
+          child: Stack(children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
                   padding: const EdgeInsets.all(Dimens.padding),
-                  child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!_isLoginMode)
-                            UserImagePickerScreen(
-                              onPickImage: (pickedImage) {
-                                _selectedImage = pickedImage;
+                  width: Dimens.logoSize,
+                  child: Image.asset('assets/images/chat.png'),
+                ),
+                Card(
+                  margin: const EdgeInsets.all(Dimens.padding),
+                  child: Padding(
+                    padding: const EdgeInsets.all(Dimens.padding),
+                    child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!_isLoginMode)
+                              UserImagePickerScreen(
+                                onPickImage: (pickedImage) {
+                                  _selectedImage = pickedImage;
+                                },
+                              ),
+                            TextFormField(
+                              decoration: const InputDecoration(
+                                  label: Text('Email address')),
+                              keyboardType: TextInputType.emailAddress,
+                              autocorrect: false,
+                              textCapitalization: TextCapitalization.none,
+                              validator: (value) {
+                                if (value == null ||
+                                    value.trim().isEmpty ||
+                                    !EmailValidator.validate(value)) {
+                                  return 'Please enter a valid email address.';
+                                }
+                                return null;
                               },
+                              onSaved: (newValue) => _enteredEmail = newValue!,
                             ),
-                          TextFormField(
-                            decoration: const InputDecoration(
-                                label: Text('Email address')),
-                            keyboardType: TextInputType.emailAddress,
-                            autocorrect: false,
-                            textCapitalization: TextCapitalization.none,
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty ||
-                                  !EmailValidator.validate(value)) {
-                                return 'Please enter a valid email address.';
-                              }
-                              return null;
-                            },
-                            onSaved: (newValue) => _enteredEmail = newValue!,
-                          ),
-                          TextFormField(
-                            decoration:
-                                const InputDecoration(label: Text('Password')),
-                            obscureText: true,
-                            autocorrect: false,
-                            textCapitalization: TextCapitalization.none,
-                            validator: (value) {
-                              if (value == null || value.trim().length < 6) {
-                                return 'Password must be at least 6 characters long.';
-                              }
-                              return null;
-                            },
-                            onSaved: (newValue) => _enteredPasword = newValue!,
-                          ),
-                          const SizedBox(height: Dimens.padding),
-                          ElevatedButton(
-                            onPressed: _submit,
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer),
-                            child: Text(_isLoginMode ? 'Login' : 'Signup'),
-                          ),
-                          TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _isLoginMode = !_isLoginMode;
-                                });
+                            TextFormField(
+                              decoration: const InputDecoration(
+                                  label: Text('Password')),
+                              obscureText: true,
+                              autocorrect: false,
+                              textCapitalization: TextCapitalization.none,
+                              validator: (value) {
+                                if (value == null || value.trim().length < 6) {
+                                  return 'Password must be at least 6 characters long.';
+                                }
+                                return null;
                               },
-                              child: Text(_isLoginMode
-                                  ? 'Create an account'
-                                  : 'I already have an account'))
-                        ],
-                      )),
+                              onSaved: (newValue) =>
+                                  _enteredPasword = newValue!,
+                            ),
+                            const SizedBox(height: Dimens.padding),
+                            ElevatedButton(
+                              onPressed: _submit,
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer),
+                              child: Text(_isLoginMode ? 'Login' : 'Signup'),
+                            ),
+                            TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isLoginMode = !_isLoginMode;
+                                  });
+                                },
+                                child: Text(_isLoginMode
+                                    ? 'Create an account'
+                                    : 'I already have an account'))
+                          ],
+                        )),
+                  ),
+                )
+              ],
+            ),
+            if (_isAuthenticating)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  color: Colors.white38,
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               )
-            ],
-          ),
+          ]),
         ),
       ),
     );
