@@ -27,17 +27,18 @@ class _AuthState extends State<AuthScreen> {
     if (!isValidForm) return;
 
     _formKey.currentState!.save();
-    if (_isLoginMode) {
-      //login logic
-    } else {
-      try {
-        final userCredential = await _firebase.createUserWithEmailAndPassword(
+    try {
+      if (_isLoginMode) {
+        await _firebase.signInWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPasword);
-      } on FirebaseAuthException catch (err) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(err.message ?? 'Authentication failed')));
+      } else {
+        await _firebase.createUserWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPasword);
       }
+    } on FirebaseAuthException catch (err) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err.message ?? 'Authentication failed')));
     }
   }
 
@@ -52,7 +53,7 @@ class _AuthState extends State<AuthScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(Dimens.padding),
-                width: 200,
+                width: Dimens.logoSize,
                 child: Image.asset('assets/images/chat.png'),
               ),
               Card(
