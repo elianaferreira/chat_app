@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:chat_app/utils/dimens.dart';
+import 'package:chat_app/widgets/user_image_picker.dart';
 
 final _firebase = FirebaseAuth.instance;
 
@@ -19,12 +23,13 @@ class _AuthState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   String _enteredEmail = '';
   String _enteredPasword = '';
+  File? _selectedImage;
   bool _isLoginMode = true;
 
   void _submit() async {
     final isValidForm = _formKey.currentState!.validate();
 
-    if (!isValidForm) return;
+    if (!isValidForm || (!_isLoginMode && _selectedImage == null)) return;
 
     _formKey.currentState!.save();
     try {
@@ -32,8 +37,16 @@ class _AuthState extends State<AuthScreen> {
         await _firebase.signInWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPasword);
       } else {
-        await _firebase.createUserWithEmailAndPassword(
+        final userCredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPasword);
+        //upload image
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${userCredentials.user!.uid}.jpg');
+        await storageRef.putFile(_selectedImage!);
+        String imageUrl = await storageRef.getDownloadURL();
+        print(imageUrl);
       }
     } on FirebaseAuthException catch (err) {
       ScaffoldMessenger.of(context).clearSnackBars();
@@ -65,6 +78,12 @@ class _AuthState extends State<AuthScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!_isLoginMode)
+                            UserImagePickerScreen(
+                              onPickImage: (pickedImage) {
+                                _selectedImage = pickedImage;
+                              },
+                            ),
                           TextFormField(
                             decoration: const InputDecoration(
                                 label: Text('Email address')),
