@@ -58,9 +58,9 @@ class _AuthState extends State<AuthScreen> {
             .collection(Constants.firestoreUsersCollectionName)
             .doc(userCredentials.user!.uid)
             .set({
-          'username': _enteredUsername,
-          'email': _enteredEmail,
-          'image_url': imageUrl
+          UserMapKeys.username: _enteredUsername,
+          UserMapKeys.email: _enteredEmail,
+          UserMapKeys.imageUrl: imageUrl
         });
       }
     } on FirebaseAuthException catch (err) {
