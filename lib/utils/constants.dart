@@ -3,6 +3,7 @@ class Constants {
   static const String firebaseImageExtension = '.jpg';
   static const String firestoreUsersCollectionName = 'users';
   static const String firestoreChatsCollectionName = 'chats';
+  static const String pushNotificationsTopic = 'general_chat';
 }
 
 class UserMapKeys {
